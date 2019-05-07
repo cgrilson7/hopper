@@ -1,0 +1,116 @@
+---
+title: "Solving Puzzle.csv"
+output: html_notebook
+---
+
+In this notebook, I'll try to narrate my thought process as I see this data for the first time, and provide commentary on my analysis.
+
+First, I read in the data and, since all we have is two un-named columns of doubles, I'll arbitrarily assign column names.
+```{r}
+library(readr)
+library(dplyr)
+
+df <- read_csv("input/puzzle.csv", col_names = F)
+colnames(df) <- c("x", "y")
+```
+Next, I like to get a feel for the distribution of the data and to identify any potential relationship between the variables. Since there are only two variables here, the most straightforward way to do this is to throw them onto a scatter plot.
+```{r}
+library(ggplot2)
+ggplot(df, aes(x,y)) +
+  geom_point()
+```
+Hmm... interesting. It almost appears that x and y are the points on an image, or geometric shapes. Let's flip the image to see if that hypothesis holds true:
+```{r}
+ggplot(df, aes(y, x)) +
+  geom_point()
+```
+Whoa! These are coordinates! Puzzle solved?
+
+### Mapping Airports
+
+Let's rename the columns, and see if we can rescale x and y to get the true (long, lat) coordinates of these points on Earth. Assuming these are airports, let's take advantage of the fact that Bermuda has only one.
+
+Sitting rather conspicuously off the Eastern Seaboard, BDA appears to lie somewhere in the broad bounding box
+
+                (-1.5, 0.75)          (-1, 0.75)
+                |              BDA             |
+                (-1.5, 0.25)          (-1, 0.25)
+                
+Let's zoom in on it:
+```{r}
+colnames(df) <- c("long", "lat")
+df %>%
+  ggplot(aes(x=lat, y=long)) + 
+  geom_point() + 
+  xlim(c(-1.5, -1)) +
+  ylim(c(0.25, 0.75))
+```
+From the looks of it BDA is somewhere around (-1.15, 0.575). Filtering, we can see which point exactly refers to BDA:
+```{r}
+BDA <- 
+  df %>%
+  filter(lat > -1.2, lat < -1.1,
+         long > 0.55, long < 0.6) %>%
+  slice(1) %>%
+  as.vector()
+BDA
+```
+So, in this dataset, the coordinates (0.5648583, -1.128856) represent BDA.
+
+Thanks to Wikipedia, we can check the actual coordinates of BDA. They are: (32.364167, -64.678611).
+
+We can use the ratio of these sets of coordinates to rescale each point in the data:
+```{r}
+true_BDA <- c(32.364167, -64.678611)
+scale_factors <- true_BDA/BDA
+df <- df %>%
+  mutate(long_true = long*scale_factors$long,
+         lat_true = lat*scale_factors$lat)
+ggplot(df, aes(lat_true, long_true)) +
+  geom_point()
+```
+
+## Naming Airports
+
+Now that we've scaled longitudes and latitudes appropriately, why not figure out which airports the points refer to? Thanks to OpenFlights.org, we can do exactly that:
+
+```{r}
+airports <- read_csv("https://raw.githubusercontent.com/jpatokal/openflights/master/data/airports.dat",
+                     col_names = c(
+                       "row", "name", "city", "country", "IATA", "ICAO", "long", "lat", "altitude", "timezone", "DST", "tz", "type", "source"
+                     ),
+                     na = "\\N"
+                     )
+airports$lat = as.double(airports$lat)
+airports$long = as.double(airports$long)
+ggplot(airports, aes(lat, long)) + geom_point(color = "blue") + ggtitle("All 7543 Airports in the World (per OpenFlights.org)")
+```
+To join with our dataset, we first have to round the values of lat, long (in both datasets)
+```{r}
+df <- df %>%
+  mutate(long_rd = round(long_true, 3),
+         lat_rd = round(lat_true, 3))
+airports <- airports %>%
+  mutate(long_rd = round(long, 3),
+         lat_rd = round(lat, 3)) 
+```
+Joining our dataset with the airports dataset:
+```{r}
+combined <- df %>%
+  select(long_rd, lat_rd) %>%
+  left_join(airports, by = c("long_rd", "lat_rd"))
+nrow(combined[(is.na(combined$row)),])
+```
+OK, so that didn't work as well as I'd hoped. 240 of 1024 rows in our dataset could not be matched with OpenFlight's. This might be because the OpenFlight coordinates differ from those in our data. After all, 0.001 degrees ca
+```{r}
+combined_na <- combined %>%
+  filter(is.na(row)) %>%
+  select(long_rd_str, lat_rd_str)
+```
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
