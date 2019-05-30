@@ -166,6 +166,8 @@ combined %>%
 Unfortunately, this seems like a random slice of 1024 flights, 102 of which are arriving/departing from Taitung Airport in Taiwan (perhaps early morning there?). Not much more to gain by analyzing this any further, but I'll write the result to CSV and make one final plot, overlaying the coordinates on a map of the world using the maps/mapdata package.
 
 ```{r, dpi = 200}
+write_csv(combined, "output/solution.csv")
+
 library(maps); library(mapdata)
 world <- map_data("world")
 combined %>% 
@@ -182,14 +184,4 @@ combined %>%
     axis.line = element_blank(),
     axis.ticks = element_blank()
   )
-```
-
-
-```{r}
-write_csv(combined, "output/solution.csv")
-library(DT)
-fuzzy_combined %>%
-  ungroup() %>%
-  select(name:tz, num_flights = n) %>%
-  datatable()
 ```
