@@ -212,25 +212,20 @@ combined %>%
 
 Unfortunately, this seems like a random slice of 1024 flights, 102 of which are arriving/departing from Taitung Airport in Taiwan (perhaps early morning there?). Not much more to gain by analyzing this any further, but I'll write the result to CSV and make one final plot, overlaying the coordinates on a map of the world using the maps/mapdata package.
 
-``` r
-write_csv(combined, "output/solution.csv")
-
-library(maps); library(mapdata)
-world <- map_data("world")
-combined %>% 
-  ggplot() +
-  geom_polygon(data=world, aes(x=long, y=lat, group=group), fill = "white", color = "#adadad", size=0.5) +
-  geom_point(aes(x=long, y=lat, size=n), color="#ff512f", alpha=0.7, na.rm = T) +
-  coord_fixed(1.3) +
-  theme(
-    panel.background = element_rect(fill = "#00235b", color = NULL),
-    panel.grid = element_blank(),
-    legend.position = "none",
-    axis.title = element_blank(),
-    axis.text = element_blank(),
-    axis.line = element_blank(),
-    axis.ticks = element_blank()
-  )
-```
-
 ![](README_files/figure-markdown_github/unnamed-chunk-12-1.png)
+
+|  Count| IATA | Airport                                      | City              | Country        |
+|------:|:-----|:---------------------------------------------|:------------------|:---------------|
+|    101| TTT  | Taitung Airport                              | Fengnin           | Taiwan         |
+|      2| ANC  | Ted Stevens Anchorage International Airport  | Anchorage         | United States  |
+|      2| TRI  | Tri-Cities Regional TN/VA Airport            | BRISTOL           | United States  |
+|      2| CLO  | Alfonso Bonilla Aragon International Airport | Cali              | Colombia       |
+|      2| FOR  | Pinto Martins International Airport          | Fortaleza         | Brazil         |
+|      2| OPO  | Francisco de Sá Carneiro Airport             | Porto             | Portugal       |
+|      2| SEN  | Southend Airport                             | Southend          | United Kingdom |
+|      2| PMI  | Palma De Mallorca Airport                    | Palma de Mallorca | Spain          |
+|      2| DUS  | Düsseldorf Airport                           | Duesseldorf       | Germany        |
+|      2| NAP  | Naples International Airport                 | Naples            | Italy          |
+|      2| SOF  | Sofia Airport                                | Sofia             | Bulgaria       |
+|      2| ISL  | Atatürk International Airport                | Istanbul          | Turkey         |
+|      2| LEA  | Learmonth Airport                            | Learmonth         | Australia      |

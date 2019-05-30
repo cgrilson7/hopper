@@ -165,18 +165,18 @@ combined %>%
   knitr::kable()
 ```
 
-
 Unfortunately, this seems like a random slice of 1024 flights, 102 of which are arriving/departing from Taitung Airport in Taiwan (perhaps early morning there?). Not much more to gain by analyzing this any further, but I'll write the result to CSV and make one final plot, overlaying the coordinates on a map of the world using the maps/mapdata package.
 
-```{r, dpi = 200}
+```{r, dpi = 200, echo = F}
 write_csv(combined, "output/solution.csv")
 
-library(maps); library(mapdata)
+library(maps); library(mapdata); library(ggrepel)
 world <- map_data("world")
-combined %>% 
-  ggplot() +
+ggplot() +
   geom_polygon(data=world, aes(x=long, y=lat, group=group), fill = "white", color = "#adadad", size=0.5) +
-  geom_point(aes(x=long, y=lat, size=n), color="#ff512f", alpha=0.7, na.rm = T) +
+  geom_point(data=combined, aes(x=long, y=lat, size=n), color="#ff512f", alpha=0.7, na.rm = T) +
+  geom_label_repel(data=filter(combined, n > 1), aes(x=long, y=lat, label=IATA), segment.color = "yellow") +
+  labs(title = "All Identified Airports Contained in Puzzle.csv", subtitle="Airports appearing more than once labeled with IATA code") +
   coord_fixed(1.3) +
   theme(
     panel.background = element_rect(fill = "#00235b", color = NULL),
@@ -188,3 +188,12 @@ combined %>%
     axis.ticks = element_blank()
   )
 ```
+```{r, echo = FALSE}
+combined %>%
+  ungroup() %>%
+  filter(n > 1) %>%
+  arrange(desc(n)) %>%
+  select(Count = n, IATA, Airport = name, City = city, Country = country) %>%
+  knitr::kable()
+```
+
