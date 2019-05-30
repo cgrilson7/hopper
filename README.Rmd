@@ -1,8 +1,11 @@
 ---
-title: "Solving Puzzle.csv"
+title: "Solving Hopper's Data Science Puzzle"
+author: Colin G. Wilson
+date: May 29, 2019
 output:
-  html_document:
-    df_print: paged
+  md_document:
+    variant: markdown_github
+always_allow_html: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -32,7 +35,7 @@ ggplot(df, aes(y, x)) +
   geom_point()
 ```
 
-Whoa! These are coordinates! Puzzle solved?
+Aha! These are coordinates. Puzzle solved?
 
 ### Mapping Airports
 
@@ -110,7 +113,7 @@ airports <- airports %>%
 Joining our dataset with the airports dataset:
 ```{r}
 combined <- flights %>%
-  select(long_rd, lat_rd) %>%
+  select(n, long_rd, lat_rd) %>%
   left_join(airports, by = c("long_rd", "lat_rd"))
 nrow(combined[(is.na(combined$row)),])
 ```
@@ -118,27 +121,9 @@ We didn't get a perfect join, as 28 of 912 airports in our dataset could not be 
 
 Given that, and the fact that we calculated our coordinates, this is a pretty good result. 
 
-But I'm not satisfied. I'll join the data frames again, but in a "fuzzy" way, rounding each set of coordinates both up and down and constructing a series of joins for each combination of roundings until (hopefully) all flights have an airport.
-```{r}
-# library(plyr) # for the round_any() function
-# library(dplyr) # to avoid masking of dplyr functions
-# flights <- flights %>%
-#   select(long_true, lat_true) %>%
-#   mutate(long_up = plyr::round_any(long_true, 0.001, ceiling),
-#          long_down = plyr::round_any(long_true, 0.001, floor),
-#          lat_up = plyr::round_any(lat_true, 0.001, ceiling),
-#          lat_down = plyr::round_any(lat_true, 0.001, floor))
-# airports <- airports %>%
-#   mutate(long_up = plyr::round_any(long, 0.001, ceiling),
-#          long_down = plyr::round_any(long, 0.001, floor),
-#          lat_up = plyr::round_any(lat, 0.001, ceiling),
-#          lat_down = plyr::round_any(lat, 0.001, floor))
-```
-Wait! This looks like it'll be very complicated to JOIN in this fashion. Maybe I should check if there's a package for inexact joining?
+But I'm not satisfied. I'll join the data frames again, but in a "fuzzy" way, using the fuzzyjoin package which has functions for inexact joining. In order to fuzzyjoin our datasets, I first need to write a vectorized function that, given the two columns (e.g. of latitudes), decides where they match each other.
 
-Google points me to a package called fuzzyjoin, which does exactly this. But to fuzzyjoin our datasets, I first need to write a function that, given the two columns (e.g. of latitudes), decides where they match each other.
-
-My criteria for a match is that the values be within 0.02 degrees of each other. This is approximately 2.2 kilometers, which is a little risky, since there may be some places (thinking NYC with LaGuardia and JFK, Seattle with King County/Sea-Tac, or Chicago with O'Hare and Midway and all the densely populated places in the world I've yet to visit) that have two airports in close proximity. But for **both** the latitude and longitude of two airports to be within 2.2 km of each other is quite unlikely.
+My criteria for a match is that the values be within 0.02 degrees of each other. This is approximately 2.2 kilometers, which is a little risky, since there may be some places (thinking NYC with LaGuardia and JFK, Seattle with King County/Sea-Tac, or Chicago with O'Hare and Midway and all the densely populated places in the world I've yet to visit) that have two airports in close proximity. But for **both** the latitude and longitude of two major airports to be within 2.2 km of each other is quite unlikely.
 
 I've made this distance an argument in my matching function, so that I can come back and change this later if need be.
 
@@ -158,6 +143,7 @@ my_match_fun <- function(col1, col2, distance = 0.02){
 }
 
 fuzzy_combined <- flights %>%
+  select(n, long_rd, lat_rd) %>%
   fuzzy_left_join(airports, by = c("long_rd", "lat_rd"), my_match_fun)
 
 nrow(fuzzy_combined[(is.na(fuzzy_combined$row)),])
@@ -166,11 +152,38 @@ nrow(fuzzy_combined[(is.na(fuzzy_combined$row)),])
 Success! We've more than halved the number of missing airports. 
 
 ## Solution
-At this point, we have 902/912 of the unique coordinate pairs in our file not only scaled properly, but mapped to actual airports.
+At this point, we have 902/912 of the unique coordinate pairs in our file not only scaled properly, but mapped to actual airports. Here are the 10 airports appearing most frequently in the dataset:
 
-Unfortunately, this seems like a random slice of 1024 flights, 102 of which are arriving/departing from Taitung Airport in Taiwan (perhaps early morning there?). There's not much use in trying to extract any further meaning.
+```{r}
+combined %>%
+  select(n, name, city, country, IATA, ICAO, altitude, timezone, long = long_rd, lat = lat_rd) %>%
+  arrange(desc(n)) %>%
+  head(10) %>%
+  knitr::kable()
+```
 
-Signing off...
+
+Unfortunately, this seems like a random slice of 1024 flights, 102 of which are arriving/departing from Taitung Airport in Taiwan (perhaps early morning there?). Not much more to gain by analyzing this any further, but I'll write the result to CSV and make one final plot, overlaying the coordinates on a map of the world using the maps/mapdata package.
+
+```{r, dpi = 200}
+library(maps); library(mapdata)
+world <- map_data("world")
+combined %>% 
+  ggplot() +
+  geom_polygon(data=world, aes(x=long, y=lat, group=group), fill = "white", color = "#adadad", size=0.5) +
+  geom_point(aes(x=long, y=lat, size=n), color="#ff512f", alpha=0.7, na.rm = T) +
+  coord_fixed(1.3) +
+  theme(
+    panel.background = element_rect(fill = "#00235b", color = NULL),
+    panel.grid = element_blank(),
+    legend.position = "none",
+    axis.title = element_blank(),
+    axis.text = element_blank(),
+    axis.line = element_blank(),
+    axis.ticks = element_blank()
+  )
+```
+
 
 ```{r}
 write_csv(combined, "output/solution.csv")
