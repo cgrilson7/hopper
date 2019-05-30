@@ -12,6 +12,8 @@ always_allow_html: yes
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+### Solving Hopper's Data Science Puzzle
+
 In this notebook, I'll try to narrate my thought process as I see this data for the first time, and provide commentary on my analysis.
 
 First, I read in the data and, since all we have is two un-named columns of doubles, I'll arbitrarily assign column names.
@@ -151,7 +153,8 @@ nrow(fuzzy_combined[(is.na(fuzzy_combined$row)),])
 
 Success! We've more than halved the number of missing airports. 
 
-## Solution
+### Solution
+
 At this point, we have 902/912 of the unique coordinate pairs in our file not only scaled properly, but mapped to actual airports. Here are the 10 airports appearing most frequently in the dataset:
 
 ```{r}
@@ -166,6 +169,8 @@ combined %>%
 Unfortunately, this seems like a random slice of 1024 flights, 102 of which are arriving/departing from Taitung Airport in Taiwan (perhaps early morning there?). Not much more to gain by analyzing this any further, but I'll write the result to CSV and make one final plot, overlaying the coordinates on a map of the world using the maps/mapdata package.
 
 ```{r, dpi = 200}
+write_csv(combined, "output/solution.csv")
+
 library(maps); library(mapdata)
 world <- map_data("world")
 combined %>% 
@@ -182,14 +187,4 @@ combined %>%
     axis.line = element_blank(),
     axis.ticks = element_blank()
   )
-```
-
-
-```{r}
-write_csv(combined, "output/solution.csv")
-library(DT)
-fuzzy_combined %>%
-  ungroup() %>%
-  select(name:tz, num_flights = n) %>%
-  datatable()
 ```
