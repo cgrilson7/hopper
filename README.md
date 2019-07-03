@@ -48,7 +48,7 @@ Aha! These are coordinates. Puzzle solved?
 
 ### Mapping Airports
 
-Let's rename the columns, and see if we can rescale x and y to get the true (long, lat) coordinates of these points on Earth. Assuming these are airports, let's take advantage of the fact that Bermuda has only one.
+Let's rename the columns, and see if we can rescale x and y to get the true (long, lat) coordinates of these points on Earth. Assuming these are airports, let's take advantage of the convenient fact that Bermuda has only one.
 
 Sitting rather conspicuously off the Eastern Seaboard, BDA appears to lie somewhere in the broad bounding box
 
